@@ -1,4 +1,4 @@
- %%writefile CRYPTO.py
+
  import streamlit as st
  from datetime import date
  
