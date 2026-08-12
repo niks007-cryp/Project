@@ -245,21 +245,22 @@
 
         <div class="form-group">
           <label>AI Provider Name</label>
-          <select id="byok-provider-select">
+          <select id="byok-provider-select" onchange="onProviderSelectChange()">
             <option value="gemini">Gemini</option>
             <option value="openai">OpenAI</option>
             <option value="openrouter">OpenRouter</option>
+            <option value="groq">Groq</option>
           </select>
         </div>
 
         <div class="form-group">
           <label>API Key</label>
-          <input type="password" id="byok-api-key" placeholder="Paste your API key here (e.g. AIzaSy...)">
+          <input type="password" id="byok-api-key" placeholder="Paste your API key here (e.g. gsk_...)">
         </div>
 
         <div class="form-group">
           <label>Model Name</label>
-          <input type="text" id="byok-model-name" placeholder="gemini-1.5-pro or gpt-4o">
+          <input type="text" id="byok-model-name" placeholder="llama-3.1-8b-instant or llama-3.3-70b-versatile">
         </div>
 
         <div style="display: flex; gap: 12px;">
@@ -464,6 +465,21 @@
           </tr>
         `).join('');
       } catch (err) { console.error(err); }
+    }
+
+    function onProviderSelectChange() {
+      const p = document.getElementById('byok-provider-select').value;
+      const mInput = document.getElementById('byok-model-name');
+      if (p === 'groq') {
+        mInput.value = 'llama-3.1-8b-instant';
+        mInput.placeholder = 'llama-3.1-8b-instant or llama-3.3-70b-versatile';
+      } else if (p === 'gemini') {
+        mInput.value = 'gemini-1.5-pro';
+      } else if (p === 'openai') {
+        mInput.value = 'gpt-4o';
+      } else {
+        mInput.value = 'default';
+      }
     }
 
     async function loadProviders() {

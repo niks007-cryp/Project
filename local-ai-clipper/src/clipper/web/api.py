@@ -239,7 +239,7 @@ class LocalClipperAPI:
         return {"status": "SUCCESS", "candidate_id": candidate_id, "action": status_action}
 
     def list_providers(self) -> List[Dict[str, Any]]:
-        providers = ["gemini", "openai", "openrouter"]
+        providers = ["gemini", "openai", "openrouter", "groq"]
         results = []
         for p in providers:
             conf = SecureKeyVault.get_provider_config(p)
@@ -254,7 +254,7 @@ class LocalClipperAPI:
             else:
                 results.append({
                     "provider_name": p,
-                    "model_name": "default",
+                    "model_name": "llama-3.1-8b-instant" if p == "groq" else "default",
                     "api_key_masked": "NOT_CONFIGURED",
                     "is_configured": False
                 })
@@ -274,6 +274,16 @@ class LocalClipperAPI:
         conf = SecureKeyVault.get_provider_config(provider_name)
         if not conf:
             return {"status": "FAILED", "message": f"Provider '{provider_name}' is NOT_CONFIGURED."}
+        
+        if provider_name.lower() == "groq":
+            from clipper.infrastructure.llm.groq_provider import GroqProvider
+            try:
+                provider = GroqProvider(api_key=conf.get("api_key"))
+                model = conf.get("model_name") or "llama-3.1-8b-instant"
+                return provider.test_connection(model_name=model)
+            except Exception as e:
+                return {"status": "FAILED", "provider": "groq", "message": str(e)}
+
         return {
             "status": "CONNECTED",
             "provider_name": provider_name.lower(),

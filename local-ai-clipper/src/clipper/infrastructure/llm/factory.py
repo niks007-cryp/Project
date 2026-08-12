@@ -21,7 +21,19 @@ class LLMProviderFactory:
         if provider_name in ["mock", "local", "local_ollama"]:
             return MockLLMProvider()
 
-        # 2. External Paid API Providers (Gemini, OpenAI, OpenRouter)
+        # 2. First-Class Groq Provider
+        if provider_name == "groq":
+            from clipper.infrastructure.llm.groq_provider import GroqProvider
+            saved_key = SecureKeyVault.get_api_key("groq") or config.api_key_masked
+            if not saved_key or saved_key in ["NOT_CONFIGURED", "none", ""]:
+                raise ExternalProviderNotConfiguredError(
+                    "EXTERNAL AI PROVIDER NOT CONFIGURED: No Groq API key found. "
+                    "Configure via BYOK UI or 'clipper provider set groq --key <KEY>'."
+                )
+            config.api_key_masked = SecureKeyVault.mask_api_key(saved_key)
+            return GroqProvider(api_key=saved_key)
+
+        # 3. Other External Paid API Providers (Gemini, OpenAI, OpenRouter)
         saved_key = SecureKeyVault.get_api_key(provider_name) or config.api_key_masked
 
         if not saved_key or saved_key in ["NOT_CONFIGURED", "none", ""]:
