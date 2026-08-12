@@ -62,9 +62,11 @@
     .btn:hover { opacity: 0.9; transform: scale(0.99); }
     .btn-secondary { background: rgba(255, 255, 255, 0.08); color: var(--text-main); }
 
-    /* Progress & Notice */
+    /* Progress, Notice & Inline Feedback */
     .notice-box { background: rgba(6, 182, 212, 0.1); border: 1px solid var(--accent-cyan); border-radius: 8px; padding: 12px; font-size: 13px; color: var(--text-main); margin-bottom: 16px; }
     .progress-box { background: rgba(124, 58, 237, 0.1); border: 1px solid var(--accent-purple); border-radius: 8px; padding: 14px; font-size: 14px; color: var(--accent-cyan); display: none; margin-top: 16px; font-weight: 500; }
+    .ingest-error-box { background: rgba(239, 68, 68, 0.12); border: 1px solid var(--error-red); border-radius: 8px; padding: 14px; font-size: 14px; color: #fca5a5; display: none; margin-top: 12px; line-height: 1.5; }
+    .ingest-success-box { background: rgba(34, 197, 94, 0.10); border: 1px solid #22c55e; border-radius: 8px; padding: 14px; font-size: 14px; color: #86efac; display: none; margin-top: 12px; line-height: 1.5; }
 
     /* Table */
     table { width: 100%; border-collapse: collapse; margin-top: 12px; }
@@ -172,6 +174,9 @@
         <div class="progress-box" id="ingest-progress-box">
           ⏳ <span id="progress-text">Processing media asset...</span>
         </div>
+        <!-- Inline Ingestion Error / Success Banners -->
+        <div class="ingest-error-box" id="ingest-error-box"></div>
+        <div class="ingest-success-box" id="ingest-success-box"></div>
       </div>
 
       <div class="card" id="media-result-card" style="display: none;">
@@ -372,13 +377,29 @@
       }
     }
 
+    function showIngestError(msg) {
+      const errBox = document.getElementById('ingest-error-box');
+      const okBox = document.getElementById('ingest-success-box');
+      if (errBox) { errBox.innerHTML = '⚠ ' + msg; errBox.style.display = 'block'; }
+      if (okBox) okBox.style.display = 'none';
+    }
+
+    function showIngestSuccess(msg) {
+      const okBox = document.getElementById('ingest-success-box');
+      const errBox = document.getElementById('ingest-error-box');
+      if (okBox) { okBox.innerHTML = '✓ ' + msg; okBox.style.display = 'block'; }
+      if (errBox) errBox.style.display = 'none';
+    }
+
     async function uploadLocalFile() {
       const input = document.getElementById('media-file-input');
-      if (!input.files || !input.files[0]) { alert('Please select a local video file first.'); return; }
+      if (!input.files || !input.files[0]) { showIngestError('Please select a local video file first.'); return; }
       
       const file = input.files[0];
       const pBox = document.getElementById('ingest-progress-box');
       pBox.style.display = 'block';
+      document.getElementById('ingest-error-box').style.display = 'none';
+      document.getElementById('ingest-success-box').style.display = 'none';
       document.getElementById('progress-text').innerText = `Uploading and validating ${file.name}...`;
 
       try {
@@ -399,19 +420,21 @@
         const data = await res.json();
         pBox.style.display = 'none';
         displayMediaResult(data);
-        alert('File ingested successfully into Floor 2 pipeline! Asset ID: ' + data.asset_id);
+        showIngestSuccess('File ingested successfully into Floor 2 pipeline. Asset ID: ' + data.asset_id);
       } catch (err) {
         pBox.style.display = 'none';
-        alert('Upload Error: ' + err.message);
+        showIngestError('Upload Error: ' + err.message);
       }
     }
 
     async function ingestYouTubeURL() {
       const url = document.getElementById('youtube-url-input').value;
-      if (!url) { alert('Please enter a YouTube video URL.'); return; }
+      if (!url) { showIngestError('Please enter a YouTube video URL.'); return; }
 
       const pBox = document.getElementById('ingest-progress-box');
       pBox.style.display = 'block';
+      document.getElementById('ingest-error-box').style.display = 'none';
+      document.getElementById('ingest-success-box').style.display = 'none';
       document.getElementById('progress-text').innerText = 'Acquiring video source via SafeSubprocess yt-dlp...';
 
       try {
@@ -429,10 +452,10 @@
         const data = await res.json();
         pBox.style.display = 'none';
         displayMediaResult(data);
-        alert('YouTube video acquired and ingested into Floor 2 pipeline! Asset ID: ' + data.asset_id);
+        showIngestSuccess('YouTube video acquired and ingested into Floor 2 pipeline. Asset ID: ' + data.asset_id);
       } catch (err) {
         pBox.style.display = 'none';
-        alert('YouTube Error: ' + err.message);
+        showIngestError('YouTube Error: ' + err.message);
       }
     }
 

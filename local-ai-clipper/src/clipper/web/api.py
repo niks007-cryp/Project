@@ -54,6 +54,12 @@ class LocalClipperAPI:
         worker_status = "CONNECTED" if doctor_results.get("python", {}).get("passed") else "DISCONNECTED"
         readiness = "READY" if (worker_status == "CONNECTED" and provider_status == "CONNECTED") else "NOT_READY"
 
+        # Safe runtime config diagnostic — no credentials
+        from clipper.core.ingestion.youtube import download_youtube_video
+        import inspect
+        sig = inspect.signature(download_youtube_video)
+        youtube_max_bytes = sig.parameters["max_size_bytes"].default
+
         response: Dict[str, Any] = {
             "status": "HEALTHY" if all_passed else "WARNING",
             "version": __version__,
@@ -68,6 +74,10 @@ class LocalClipperAPI:
                 "readiness": readiness,
             },
             "doctor": doctor_results,
+            "runtime_policy": {
+                "youtube_max_size_bytes": youtube_max_bytes,
+                "youtube_max_size_gb": round(youtube_max_bytes / (1024 ** 3), 1),
+            },
         }
         # Never expose raw filesystem paths in production/deployed responses
         if not is_production:
