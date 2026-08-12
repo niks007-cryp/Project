@@ -104,6 +104,26 @@ class SystemDoctor:
             "notes": f"Disk space free: {free_gb} GB (Required >= {config.min_free_disk_gb} GB)",
         }
 
+    @staticmethod
+    def check_youtube_js_runtime() -> Dict[str, Any]:
+        """Checks YouTube JS runtime readiness (Node/Deno for yt-dlp challenge solving)."""
+        try:
+            from clipper.infrastructure.js_runtime import check_youtube_readiness
+            result = check_youtube_readiness()
+            return {
+                "name": "YouTube JS Runtime",
+                "passed": result["passed"],
+                "runtime": result.get("runtime"),
+                "version": result.get("runtime_version"),
+                "notes": result.get("message", ""),
+            }
+        except Exception as e:
+            return {
+                "name": "YouTube JS Runtime",
+                "passed": False,
+                "notes": f"JS runtime check failed: {str(e)[:100]}",
+            }
+
     @classmethod
     def run_all_checks(cls) -> Dict[str, Dict[str, Any]]:
         return {
@@ -113,4 +133,5 @@ class SystemDoctor:
             "docker": cls.check_docker(),
             "ffmpeg": cls.check_ffmpeg(),
             "hardware": cls.check_hardware(),
+            "youtube_js_runtime": cls.check_youtube_js_runtime(),
         }

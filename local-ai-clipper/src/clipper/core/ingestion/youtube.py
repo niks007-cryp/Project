@@ -160,7 +160,16 @@ def download_youtube_video(
         destination_file.unlink()
 
     python_exe = sys.executable
-    
+
+    # Resolve JS runtime for YouTube extraction (Node/Deno challenge solver)
+    from clipper.infrastructure.js_runtime import build_ytdlp_runtime_args, resolve_js_runtime
+    js_runtime_args = build_ytdlp_runtime_args()
+    if not js_runtime_args:
+        raise ResourceError(
+            "YouTube processing is unavailable because the local worker's JavaScript runtime is not configured. "
+            "Install Node.js or Deno and ensure it is on PATH, or set CLIPPER_YTDLP_JS_RUNTIME_PATH."
+        )
+
     # 1. Fetch metadata first without downloading video
     info_cmd = [
         python_exe,
@@ -168,10 +177,9 @@ def download_youtube_video(
         "yt_dlp",
         "--dump-json",
         "--no-playlist",
-        clean_url,
-    ]
+    ] + js_runtime_args + [clean_url]
 
-    info_res = SafeSubprocess.run(info_cmd, timeout_seconds=30)
+    info_res = SafeSubprocess.run(info_cmd, timeout_seconds=45)
     if info_res.returncode != 0:
         err_msg = info_res.stderr.strip() or info_res.stdout.strip()
         if "Private video" in err_msg or "Sign in" in err_msg:
@@ -199,7 +207,7 @@ def download_youtube_video(
         ffmpeg_binary = None
 
     output_template = str(destination_file.with_suffix("")) + ".%(ext)s"
-    
+
     download_cmd = [
         python_exe,
         "-m",
@@ -211,10 +219,10 @@ def download_youtube_video(
         "mp4",
         "--output",
         output_template,
-    ]
+    ] + js_runtime_args
     if ffmpeg_binary:
         download_cmd.extend(["--ffmpeg-location", ffmpeg_binary])
-        
+
     download_cmd.append(clean_url)
 
     dl_res = SafeSubprocess.run(download_cmd, cwd=output_dir, timeout_seconds=timeout_seconds)
