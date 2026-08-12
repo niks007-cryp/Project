@@ -116,6 +116,67 @@ class LocalClipperAPI:
         out = stage.run(IngestionStageInput(file_path=str(path)))
         return out.media_asset.model_dump(mode="json")
 
+    def ingest_youtube(self, url: str, job_id: Optional[str] = None) -> Dict[str, Any]:
+        """Validates YouTube URL, downloads video via SafeSubprocess yt-dlp, and ingests into Floor 2."""
+        from clipper.core.ingestion.youtube import validate_youtube_url, download_youtube_video, extract_youtube_video_id
+        
+        clean_url = validate_youtube_url(url)
+        vid_id = extract_youtube_video_id(clean_url)
+        jid = job_id or f"job_yt_{vid_id}"
+        job_dir = self.config.jobs_dir / jid
+        manager = ManifestManager(job_dir)
+
+        if not (job_dir / "job_manifest.json").exists():
+            manifest = JobManifest(job_id=jid)
+            manager.save(manifest)
+
+        # Download YouTube source into controlled job source folder
+        source_dir = job_dir / "source"
+        dl_path, yt_metadata = download_youtube_video(clean_url, output_dir=source_dir)
+
+        stage = IngestionStage(manager, self.logger)
+        out = stage.run(IngestionStageInput(file_path=str(dl_path)))
+        
+        # Attach YouTube provenance metadata to manifest
+        manifest = manager.load()
+        if manifest.media_asset:
+            manifest.metadata["youtube"] = yt_metadata
+            manifest.metadata["source_type"] = "youtube"
+            manager.save(manifest)
+
+        return out.media_asset.model_dump(mode="json")
+
+    def ingest_file_bytes(self, filename: str, file_bytes: bytes, job_id: Optional[str] = None) -> Dict[str, Any]:
+        """Saves uploaded video file bytes to job directory and ingests into Floor 2."""
+        from clipper.core.ingestion.security_validator import IngestionSecurityValidator
+        
+        safe_name = Path(filename).name
+        stem = Path(safe_name).stem
+        jid = job_id or f"job_upload_{stem}"
+        job_dir = self.config.jobs_dir / jid
+        upload_dir = job_dir / "uploads"
+        upload_dir.mkdir(parents=True, exist_ok=True)
+
+        target_file = upload_dir / safe_name
+        with open(target_file, "wb") as f:
+            f.write(file_bytes)
+
+        IngestionSecurityValidator.validate_file(target_file)
+
+        manager = ManifestManager(job_dir)
+        if not (job_dir / "job_manifest.json").exists():
+            manifest = JobManifest(job_id=jid)
+            manager.save(manifest)
+
+        stage = IngestionStage(manager, self.logger)
+        out = stage.run(IngestionStageInput(file_path=str(target_file)))
+        
+        manifest = manager.load()
+        manifest.metadata["source_type"] = "local_upload"
+        manager.save(manifest)
+
+        return out.media_asset.model_dump(mode="json")
+
     def run_pipeline_stage(self, job_id: str, stage_name: str, options: Dict[str, Any]) -> Dict[str, Any]:
         job_dir = self.config.jobs_dir / job_id
         manager = ManifestManager(job_dir)

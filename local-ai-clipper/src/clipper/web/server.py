@@ -25,11 +25,12 @@ class ClipperHTTPRequestHandler(BaseHTTPRequestHandler):
         pass
 
     def _send_json(self, data: Any, status_code: int = 200):
+        origin = self.headers.get("Origin", "*")
         self.send_response(status_code)
         self.send_header("Content-Type", "application/json")
-        self.send_header("Access-Control-Allow-Origin", "http://127.0.0.1:3000")
+        self.send_header("Access-Control-Allow-Origin", origin)
         self.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Filename")
         self.end_headers()
         self.wfile.write(json.dumps(data, default=str).encode("utf-8"))
 
@@ -41,10 +42,11 @@ class ClipperHTTPRequestHandler(BaseHTTPRequestHandler):
         return json.loads(body.decode("utf-8"))
 
     def do_OPTIONS(self):
+        origin = self.headers.get("Origin", "*")
         self.send_response(200)
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Origin", origin)
         self.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Filename")
         self.end_headers()
 
     def do_GET(self):
@@ -83,6 +85,16 @@ class ClipperHTTPRequestHandler(BaseHTTPRequestHandler):
         try:
             if path == "/api/media/ingest":
                 res = self.api.ingest_media(file_path=body.get("file_path"), job_id=body.get("job_id"))
+                self._send_json(res)
+            elif path == "/api/media/ingest-youtube":
+                res = self.api.ingest_youtube(url=body.get("url"), job_id=body.get("job_id"))
+                self._send_json(res)
+            elif path == "/api/media/upload":
+                # Raw file upload handler
+                filename = self.headers.get("X-Filename", "upload_media.mp4")
+                content_length = int(self.headers.get("Content-Length", 0))
+                file_bytes = self.rfile.read(content_length)
+                res = self.api.ingest_file_bytes(filename=filename, file_bytes=file_bytes)
                 self._send_json(res)
             elif path.startswith("/api/jobs/") and "/run" in path:
                 parts = path.split("/")
