@@ -1,10 +1,11 @@
 {
   "version": 2,
-  "cleanUrls": true,
-  "routes": [
+  "framework": null,
+  "outputDirectory": "local-ai-clipper/src/clipper/web/static",
+  "rewrites": [
     {
-      "src": "/(.*)",
-      "dest": "/local-ai-clipper/src/clipper/web/static/index.html"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
