@@ -183,6 +183,12 @@ def download_youtube_video(
     duration = float(video_info.get("duration", 0.0))
 
     # 2. Execute video acquisition into controlled output filename
+    from clipper.infrastructure.ffmpeg import find_binary
+    try:
+        ffmpeg_binary = find_binary("ffmpeg")
+    except Exception:
+        ffmpeg_binary = None
+
     output_template = str(destination_file.with_suffix("")) + ".%(ext)s"
     
     download_cmd = [
@@ -191,13 +197,16 @@ def download_youtube_video(
         "yt_dlp",
         "--no-playlist",
         "--format",
-        "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+        "bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best",
         "--merge-output-format",
         "mp4",
         "--output",
         output_template,
-        clean_url,
     ]
+    if ffmpeg_binary:
+        download_cmd.extend(["--ffmpeg-location", ffmpeg_binary])
+        
+    download_cmd.append(clean_url)
 
     dl_res = SafeSubprocess.run(download_cmd, cwd=output_dir, timeout_seconds=timeout_seconds)
     if dl_res.returncode != 0:

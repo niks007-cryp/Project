@@ -322,7 +322,7 @@
           const data = await res.json();
           document.getElementById('sys-status-badge').className = 'status-badge';
           document.getElementById('badge-dot').innerText = '🟢';
-          document.getElementById('badge-text').innerText = 'Worker Connected (' + workerUrl + ')';
+          document.getElementById('badge-text').innerText = 'Worker Connected';
           document.getElementById('dash-worker-status').innerText = 'Connected';
           document.getElementById('dash-worker-status').style.color = 'var(--success-green)';
           if (data.workspace_dir) {
@@ -332,7 +332,7 @@
       } catch (err) {
         document.getElementById('sys-status-badge').className = 'status-badge disconnected';
         document.getElementById('badge-dot').innerText = '🔴';
-        document.getElementById('badge-text').innerText = 'Worker Disconnected (' + workerUrl + ')';
+        document.getElementById('badge-text').innerText = 'Worker Disconnected';
         document.getElementById('dash-worker-status').innerText = 'Disconnected';
         document.getElementById('dash-worker-status').style.color = 'var(--error-red)';
       }

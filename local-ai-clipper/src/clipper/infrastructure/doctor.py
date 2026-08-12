@@ -65,14 +65,16 @@ class SystemDoctor:
 
     @staticmethod
     def check_ffmpeg() -> Dict[str, Any]:
-        ffmpeg_path = shutil.which("ffmpeg")
-        if not ffmpeg_path:
+        config = load_config()
+        bin_ffmpeg = config.workspace_dir / ".bin" / ("ffmpeg.exe" if sys.platform == "win32" else "ffmpeg")
+        ffmpeg_cmd = str(bin_ffmpeg) if bin_ffmpeg.exists() else shutil.which("ffmpeg")
+        if not ffmpeg_cmd:
             return {
                 "name": "FFmpeg Media Engine",
                 "passed": False,
-                "notes": "ffmpeg command not found on PATH. Required for Floor 2 media processing.",
+                "notes": "ffmpeg command not found on PATH or .bin directory. Required for Floor 2 media processing.",
             }
-        res = SafeSubprocess.run(["ffmpeg", "-version"])
+        res = SafeSubprocess.run([ffmpeg_cmd, "-version"])
         first_line = res.stdout.splitlines()[0] if res.stdout else "Unknown"
         return {
             "name": "FFmpeg Media Engine",
