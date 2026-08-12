@@ -57,6 +57,10 @@ def resolve_node() -> Optional[Tuple[str, str]]:
     """
     Finds a working Node.js executable.
     Returns (absolute_path, version_string) or None.
+    Priority order:
+      1. CLIPPER_YTDLP_JS_RUNTIME_PATH env variable (explicit override)
+      2. Stable system install directories (not session-scoped)
+      3. PATH lookup via shutil.which (may be session-scoped in some shells)
     """
     # 1. Explicit override
     override = os.environ.get("CLIPPER_YTDLP_JS_RUNTIME_PATH")
@@ -66,21 +70,21 @@ def resolve_node() -> Optional[Tuple[str, str]]:
             logger.info(f"JS runtime (node) resolved from env override: {override} ({ver})")
             return override, ver
 
-    # 2. PATH lookup via shutil.which
-    which_node = shutil.which("node")
-    if which_node:
-        ver = _probe_executable(which_node)
-        if ver:
-            logger.info(f"JS runtime (node) resolved via PATH: {which_node} ({ver})")
-            return which_node, ver
-
-    # 3. Stable system install directories
+    # 2. Stable system install directories (not session-scoped, safe across restarts)
     for candidate in _NODE_SYSTEM_CANDIDATES:
         if os.path.isfile(candidate):
             ver = _probe_executable(candidate)
             if ver:
                 logger.info(f"JS runtime (node) resolved from system dir: {candidate} ({ver})")
                 return candidate, ver
+
+    # 3. PATH lookup via shutil.which (may be session-scoped in fnm/nvm shells)
+    which_node = shutil.which("node")
+    if which_node:
+        ver = _probe_executable(which_node)
+        if ver:
+            logger.info(f"JS runtime (node) resolved via PATH: {which_node} ({ver})")
+            return which_node, ver
 
     logger.warning("JS runtime (node) not found. YouTube extraction may fail.")
     return None
