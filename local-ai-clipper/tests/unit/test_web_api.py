@@ -29,7 +29,7 @@ def test_api_byok_provider_workflow():
     api = LocalClipperAPI()
     save_res = api.set_provider_credential("gemini", "AIzaTestKey99998888", model_name="gemini-1.5-pro")
     assert save_res["status"] == "SUCCESS"
-    assert save_res["api_key_masked"].endswith("8888")
+    assert save_res["api_key_masked"] == "••••••••••••"
 
     providers = api.list_providers()
     gemini_p = next(p for p in providers if p["provider_name"] == "gemini")

@@ -93,12 +93,9 @@ class SecureKeyVault:
 
     @classmethod
     def mask_api_key(cls, api_key: Optional[str]) -> str:
-        if not api_key:
+        if not api_key or api_key in ["NOT_CONFIGURED", "none", ""]:
             return "NOT_CONFIGURED"
-        clean = api_key.strip()
-        if len(clean) <= 4:
-            return "****"
-        return f"{'*' * (len(clean) - 4)}{clean[-4:]}"
+        return "••••••••••••"
 
     @classmethod
     def _load_vault_data(cls) -> Dict[str, Any]:

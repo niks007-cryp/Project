@@ -14,10 +14,9 @@ def test_byok_key_masking():
     # pragma: no-secret-scan — synthetic test fixture, not a real credential
     raw_key = "AIzaSyD-1234567890abcdefghijklmnopqrstuv"
     masked = SecureKeyVault.mask_api_key(raw_key)
-    assert "AIza" not in masked[:10]
-    assert masked.endswith("uv")
-    assert "*" in masked
-    assert len(masked) == len(raw_key)
+    assert "AIza" not in masked
+    assert "uv" not in masked
+    assert masked == "••••••••••••"
 
 
 def test_byok_key_storage_and_retrieval():

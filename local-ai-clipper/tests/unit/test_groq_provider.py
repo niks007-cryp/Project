@@ -34,8 +34,7 @@ def test_groq_factory_configured():
     config = LLMConfig(provider_name="groq", model_name="llama-3.1-8b-instant")
     provider = LLMProviderFactory.get_provider(config)
     assert isinstance(provider, GroqProvider)
-    assert config.api_key_masked is not None
-    assert "9999" in config.api_key_masked
+    assert config.api_key_masked == "••••••••••••"
 
 
 def test_groq_evaluation_structure():

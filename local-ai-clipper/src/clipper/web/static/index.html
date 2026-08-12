@@ -265,8 +265,10 @@
 
         <div style="display: flex; gap: 12px;">
           <button class="btn" onclick="saveBYOKCredential()">Save Encrypted Credential</button>
-          <button class="btn btn-secondary" onclick="testBYOKConnection()">Test Connection</button>
+          <button class="btn btn-secondary" id="btn-test-connection" onclick="testBYOKConnection()">Test Connection</button>
         </div>
+
+        <div id="byok-status-message" style="display:none; margin-top:14px; padding:12px 16px; border-radius:6px; font-size:14px; font-weight:600;"></div>
       </div>
 
       <div class="card">
@@ -502,28 +504,81 @@
       const pName = document.getElementById('byok-provider-select').value;
       const key = document.getElementById('byok-api-key').value;
       const model = document.getElementById('byok-model-name').value || 'default';
+      const msgBox = document.getElementById('byok-status-message');
       
-      if (!key) { alert('Please enter an API key string.'); return; }
+      if (!key || !key.trim()) {
+        msgBox.style.display = 'block';
+        msgBox.style.background = 'rgba(255, 77, 77, 0.15)';
+        msgBox.style.color = 'var(--error-red)';
+        msgBox.innerText = '✕ ERROR: API key string cannot be empty.';
+        return;
+      }
       
-      const res = await fetch(getWorkerUrl() + '/api/providers/set', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider_name: pName, api_key: key, model_name: model })
-      });
-      const data = await res.json();
-      alert('Saved credential for ' + data.provider_name + ' (Masked: ' + data.api_key_masked + ')');
-      loadProviders();
+      try {
+        const res = await fetch(getWorkerUrl() + '/api/providers/set', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider_name: pName, api_key: key.trim(), model_name: model })
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Credential save failed');
+        }
+        const data = await res.json();
+        
+        msgBox.style.display = 'block';
+        msgBox.style.background = 'rgba(0, 204, 136, 0.15)';
+        msgBox.style.color = 'var(--success-green)';
+        msgBox.innerText = `✓ SUCCESS: ${pName.toUpperCase()} credential stored securely in local encrypted vault.`;
+        
+        document.getElementById('byok-api-key').value = '';
+        await loadProviders();
+      } catch (err) {
+        msgBox.style.display = 'block';
+        msgBox.style.background = 'rgba(255, 77, 77, 0.15)';
+        msgBox.style.color = 'var(--error-red)';
+        msgBox.innerText = '✕ ERROR: ' + err.message;
+      }
     }
 
     async function testBYOKConnection() {
       const pName = document.getElementById('byok-provider-select').value;
-      const res = await fetch(getWorkerUrl() + '/api/providers/test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider_name: pName })
-      });
-      const data = await res.json();
-      alert(data.message);
+      const btn = document.getElementById('btn-test-connection');
+      const msgBox = document.getElementById('byok-status-message');
+      
+      btn.innerText = 'Testing Connection...';
+      btn.disabled = true;
+      msgBox.style.display = 'none';
+
+      try {
+        const res = await fetch(getWorkerUrl() + '/api/providers/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider_name: pName })
+        });
+        const data = await res.json();
+        btn.innerText = 'Test Connection';
+        btn.disabled = false;
+
+        if (res.ok && (data.status === 'CONNECTED' || data.status === 'SUCCEEDED')) {
+          msgBox.style.display = 'block';
+          msgBox.style.background = 'rgba(0, 204, 136, 0.15)';
+          msgBox.style.color = 'var(--success-green)';
+          msgBox.innerText = `✓ SUCCESS: ${data.message || pName.toUpperCase() + ' connection successful.'}`;
+        } else {
+          msgBox.style.display = 'block';
+          msgBox.style.background = 'rgba(255, 77, 77, 0.15)';
+          msgBox.style.color = 'var(--error-red)';
+          msgBox.innerText = `✕ FAILED: ${data.message || 'Connection test failed.'}`;
+        }
+      } catch (err) {
+        btn.innerText = 'Test Connection';
+        btn.disabled = false;
+        msgBox.style.display = 'block';
+        msgBox.style.background = 'rgba(255, 77, 77, 0.15)';
+        msgBox.style.color = 'var(--error-red)';
+        msgBox.innerText = '✕ FAILED: ' + err.message;
+      }
     }
 
     async function runPipelineStage() {
