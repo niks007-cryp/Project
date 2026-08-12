@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "cleanUrls": true,
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/local-ai-clipper/src/clipper/web/static/index.html"
+    }
+  ]
+}
