@@ -104,16 +104,20 @@
     <div id="tab-dashboard" class="tab-pane active">
       <div class="card-grid">
         <div class="card">
-          <div class="card-header">Control Plane Architecture</div>
-          <div class="metric-val" id="dash-control-plane" style="color: var(--accent-cyan);">Vercel Control Plane</div>
+          <div class="card-header">Worker Status</div>
+          <div class="metric-val" id="dash-worker-status" style="color: var(--success-green);">● Connected</div>
         </div>
         <div class="card">
-          <div class="card-header">Processing Worker Status</div>
-          <div class="metric-val" id="dash-worker-status" style="color: var(--success-green);">Connected</div>
+          <div class="card-header">AI Provider Status</div>
+          <div class="metric-val" id="dash-provider-status" style="color: var(--accent-cyan); font-size: 18px;">● Groq — Connected & Ready</div>
         </div>
         <div class="card">
-          <div class="card-header">Worker Workspace Directory</div>
-          <div class="metric-val" id="dash-workspace-dir" style="font-size: 16px; color: var(--text-muted);">N:\local-ai-clipper</div>
+          <div class="card-header">Active Model</div>
+          <div class="metric-val" id="dash-active-model" style="font-size: 16px; color: var(--text-muted);">llama-3.1-8b-instant</div>
+        </div>
+        <div class="card">
+          <div class="card-header">Processing Readiness</div>
+          <div class="metric-val" id="dash-readiness-status" style="color: var(--success-green);">Ready</div>
         </div>
       </div>
 
@@ -326,18 +330,29 @@
           document.getElementById('sys-status-badge').className = 'status-badge';
           document.getElementById('badge-dot').innerText = '🟢';
           document.getElementById('badge-text').innerText = 'Worker Connected';
-          document.getElementById('dash-worker-status').innerText = 'Connected';
+          document.getElementById('dash-worker-status').innerText = '● Connected';
           document.getElementById('dash-worker-status').style.color = 'var(--success-green)';
-          if (data.workspace_dir) {
-            document.getElementById('dash-workspace-dir').innerText = data.workspace_dir;
+
+          if (data.active_provider) {
+            const ap = data.active_provider;
+            const pState = ap.activity === 'ACTIVE' ? 'Active' : (ap.status === 'CONNECTED' ? 'Connected & Ready' : 'Not Configured');
+            document.getElementById('dash-provider-status').innerText = `● ${ap.provider_name} — ${pState}`;
+            document.getElementById('dash-provider-status').style.color = ap.status === 'CONNECTED' ? 'var(--accent-cyan)' : 'var(--error-red)';
+            document.getElementById('dash-active-model').innerText = ap.model_name || 'default';
+            document.getElementById('dash-readiness-status').innerText = ap.readiness === 'READY' ? 'Ready' : 'Not Ready';
+            document.getElementById('dash-readiness-status').style.color = ap.readiness === 'READY' ? 'var(--success-green)' : 'var(--error-red)';
           }
         } else { throw new Error('Worker returned HTTP ' + res.status); }
       } catch (err) {
         document.getElementById('sys-status-badge').className = 'status-badge disconnected';
         document.getElementById('badge-dot').innerText = '🔴';
         document.getElementById('badge-text').innerText = 'Worker Disconnected';
-        document.getElementById('dash-worker-status').innerText = 'Disconnected';
+        document.getElementById('dash-worker-status').innerText = '● Disconnected';
         document.getElementById('dash-worker-status').style.color = 'var(--error-red)';
+        document.getElementById('dash-provider-status').innerText = '● Offline';
+        document.getElementById('dash-provider-status').style.color = 'var(--text-muted)';
+        document.getElementById('dash-readiness-status').innerText = 'Not Ready';
+        document.getElementById('dash-readiness-status').style.color = 'var(--error-red)';
       }
     }
 

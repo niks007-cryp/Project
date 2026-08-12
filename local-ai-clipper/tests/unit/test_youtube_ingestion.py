@@ -44,3 +44,26 @@ def test_verify_ytdlp_version():
     assert version_str is not None
     year = int(version_str.split(".")[0])
     assert year >= 2024
+
+
+def test_youtube_50gb_size_policy():
+    from clipper.core.ingestion.youtube import download_youtube_video
+    import inspect
+    sig = inspect.signature(download_youtube_video)
+    default_max = sig.parameters["max_size_bytes"].default
+    assert default_max == 50 * 1024 * 1024 * 1024  # 50 GB limit
+
+
+def test_youtube_disk_preflight_check(tmp_path, monkeypatch):
+    from clipper.core.ingestion.youtube import download_youtube_video
+    from clipper.core.errors import ResourceError
+    import psutil
+
+    class FakeDisk:
+        free = 1.0 * (1024**3)  # Only 1 GB free space
+
+    monkeypatch.setattr(psutil, "disk_usage", lambda path: FakeDisk())
+
+    with pytest.raises(ResourceError) as exc_info:
+        download_youtube_video("https://www.youtube.com/watch?v=dQw4w9WgXcQ", output_dir=tmp_path)
+    assert "Insufficient disk space" in str(exc_info.value)

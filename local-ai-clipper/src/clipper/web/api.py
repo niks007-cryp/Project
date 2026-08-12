@@ -29,15 +29,44 @@ class LocalClipperAPI:
         self.config = load_config()
         self.logger = get_logger("web_api")
 
+    # Telemetry state
+    _current_activity: str = "IDLE"
+
     def get_health_status(self) -> Dict[str, Any]:
         doctor_results = SystemDoctor.run_all_checks()
         all_passed = all(info.get("passed", False) for info in doctor_results.values())
         is_production = self.config.environment == "production"
+
+        # Determine configured provider status
+        providers = ["groq", "gemini", "openai", "openrouter"]
+        active_provider_name = "groq"
+        active_model_name = "llama-3.1-8b-instant"
+        provider_status = "NOT_CONFIGURED"
+
+        for p in providers:
+            conf = SecureKeyVault.get_provider_config(p)
+            if conf and conf.get("api_key"):
+                active_provider_name = p
+                active_model_name = conf.get("model_name") or ("llama-3.1-8b-instant" if p == "groq" else "default")
+                provider_status = "CONNECTED"
+                break
+
+        worker_status = "CONNECTED" if doctor_results.get("python", {}).get("passed") else "DISCONNECTED"
+        readiness = "READY" if (worker_status == "CONNECTED" and provider_status == "CONNECTED") else "NOT_READY"
+
         response: Dict[str, Any] = {
             "status": "HEALTHY" if all_passed else "WARNING",
             "version": __version__,
             "environment": self.config.environment,
             "mode": "local",
+            "worker_status": worker_status,
+            "active_provider": {
+                "provider_name": active_provider_name.upper(),
+                "model_name": active_model_name,
+                "status": provider_status,
+                "activity": LocalClipperAPI._current_activity,
+                "readiness": readiness,
+            },
             "doctor": doctor_results,
         }
         # Never expose raw filesystem paths in production/deployed responses
@@ -191,13 +220,19 @@ class LocalClipperAPI:
             return tx_out.transcript.model_dump(mode="json")
 
         elif stage_name == "candidates":
-            intel_stage = IntelligenceStage(manager, self.logger)
-            intel_out = intel_stage.run(IntelligenceStageInput(
-                transcript=manifest.transcript,
-                min_duration_sec=options.get("min_duration", 3.0),
-                top_k=options.get("top_k", 5)
-            ))
-            return [c.model_dump(mode="json") for c in intel_out.selected_candidates]
+            LocalClipperAPI._current_activity = "ACTIVE"
+            try:
+                intel_stage = IntelligenceStage(manager, self.logger)
+                intel_out = intel_stage.run(IntelligenceStageInput(
+                    transcript=manifest.transcript,
+                    media_asset=manifest.media_asset,
+                    min_clip_duration_seconds=options.get("min_duration", 3.0),
+                    max_clip_duration_seconds=options.get("max_duration", 90.0),
+                    top_k_candidates=options.get("top_k", 3),
+                ))
+                return [c.model_dump(mode="json") for c in intel_out.selected_candidates]
+            finally:
+                LocalClipperAPI._current_activity = "IDLE"
 
         elif stage_name == "renderplan":
             candidates = [c for c in manifest.candidates if c.is_selected] or manifest.candidates

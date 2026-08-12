@@ -134,17 +134,26 @@ def verify_ytdlp_version() -> str:
 def download_youtube_video(
     url: str,
     output_dir: Path,
-    max_size_bytes: int = 500_000_000,
-    timeout_seconds: int = 300,
+    max_size_bytes: int = 50 * 1024 * 1024 * 1024,  # 50 GB authoritative limit
+    timeout_seconds: int = 600,
 ) -> Tuple[Path, Dict[str, Any]]:
     """
     Safely acquires source video from YouTube using yt-dlp via SafeSubprocess.
+    Enforces 50 GB max size, disk headroom preflight, and partial file cleanup.
     Saves output to controlled destination (source_download.mp4).
     Returns (downloaded_file_path, metadata_dict).
     """
+    import psutil
     clean_url = validate_youtube_url(url)
     video_id = extract_youtube_video_id(clean_url)
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Resource Preflight: Disk space check
+    target_drive = str(output_dir.resolve().anchor or "C:\\")
+    disk = psutil.disk_usage(target_drive)
+    free_gb = disk.free / (1024**3)
+    if free_gb < 5.0:
+        raise ResourceError(f"Insufficient disk space for safe download. Available free disk: {free_gb:.2f} GB (Required >= 5.00 GB).")
 
     destination_file = output_dir / "source_download.mp4"
     if destination_file.exists():
@@ -210,6 +219,13 @@ def download_youtube_video(
 
     dl_res = SafeSubprocess.run(download_cmd, cwd=output_dir, timeout_seconds=timeout_seconds)
     if dl_res.returncode != 0:
+        # Partial file cleanup
+        for partial_file in output_dir.glob("*"):
+            if partial_file.is_file() and partial_file != destination_file:
+                try:
+                    partial_file.unlink(missing_ok=True)
+                except Exception:
+                    pass
         err_msg = dl_res.stderr.strip() or dl_res.stdout.strip()
         raise SystemError(f"yt-dlp download failed: {err_msg[:200]}")
 
