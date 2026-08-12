@@ -1,0 +1,125 @@
+# Local AI Clipper — .gitignore
+
+# ── Python Runtime ────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.pyd
+.Python
+
+# ── Virtual Environment ───────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ── Package Build Artifacts ───────────────────────────────────────────────────
+dist/
+build/
+*.egg-info/
+*.egg
+MANIFEST
+pip-wheel-metadata/
+
+# ── Test & Coverage Artifacts ─────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+
+# ── Type Checkers ─────────────────────────────────────────────────────────────
+.mypy_cache/
+.pyright/
+.ruff_cache/
+
+# ── Environment Variables — NEVER COMMIT SECRETS ─────────────────────────────
+.env
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+.env.staging
+.env.staging.local
+# Keep the example file — it has placeholders only
+!.env.example
+
+# ── IDE / Editor ──────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-workspace
+.DS_Store
+Thumbs.db
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+logs/
+*.log.*
+
+# ── Local Credential Vault ────────────────────────────────────────────────────
+# The vault holds DPAPI-encrypted user keys — never in Git
+.vault/
+
+# ── Local Binary Dependencies ─────────────────────────────────────────────────
+# FFmpeg/FFprobe static binaries — managed outside Git (documented in DEPLOYMENT.md)
+.bin/
+
+# ── AI Model Weights ──────────────────────────────────────────────────────────
+# Local model files can be hundreds of MBs — never commit
+models/
+*.pt
+*.pth
+*.onnx
+*.bin
+*.gguf
+*.safetensors
+
+# ── Media Artifacts ───────────────────────────────────────────────────────────
+# Source videos, renders, and processing artifacts are NOT source code
+jobs/
+renders/
+*.mp4
+*.mov
+*.mkv
+*.webm
+*.avi
+*.m4v
+*.wav
+*.flac
+# Exception: small deterministic test fixtures committed explicitly
+!tests/fixtures/test_fixture_*.mp4
+
+# ── Vercel ────────────────────────────────────────────────────────────────────
+.vercel/
+
+# ── Node (if frontend added) ──────────────────────────────────────────────────
+node_modules/
+.next/
+out/
+.nuxt/
+.output/
+
+# ── Temporary Files ───────────────────────────────────────────────────────────
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# ── Security — Never Commit ───────────────────────────────────────────────────
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+credentials.json
+service_account.json
+secrets.json

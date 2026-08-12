@@ -1,0 +1,41 @@
+name: Vercel Deployment Check
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  vercel-build-check:
+    name: Vercel Deployment Configuration Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Verify deployment health endpoint
+        run: python scripts/verify_deployment.py --local-only
+
+      - name: Verify no localhost hardcoded in deployment code
+        run: python scripts/scan_windows_paths.py
+
+      - name: Report deployment readiness
+        run: |
+          echo "=== Deployment Readiness Report ==="
+          echo "Web Control Panel: Local (Python HTTP Server)"
+          echo "Vercel Target:     Control Plane + Thin API"
+          echo "Worker:            Local Processing Engine (not on Vercel)"
+          echo "GPU/FFmpeg:        Local only (not CI)"
+          echo ""
+          echo "NOTE: Full Vercel deployment requires manual authorization."
+          echo "      See DEPLOYMENT.md for setup instructions."

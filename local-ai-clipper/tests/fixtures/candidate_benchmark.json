@@ -1,0 +1,20 @@
+[
+  {
+    "benchmark_id": "bench_001",
+    "transcript_text": "Why is local AI clipping so revolutionary? It runs completely offline on your computer. Here is the full guide to getting started.",
+    "ground_truth_candidates": [
+      {
+        "candidate_id": "cand_bench_1",
+        "start_ms": 0,
+        "end_ms": 25000,
+        "relevance_score": 3.0
+      },
+      {
+        "candidate_id": "cand_bench_2",
+        "start_ms": 25000,
+        "end_ms": 55000,
+        "relevance_score": 1.0
+      }
+    ]
+  }
+]
